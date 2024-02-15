@@ -2,6 +2,7 @@ using Cysharp.Threading.Tasks;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Unity.VisualScripting.Dependencies.NCalc;
 using UnityEngine;
 
 public static class Raycast
@@ -87,9 +88,24 @@ public static class Cam
     {
         while (true)
         {
-            //if (Zoom.gotoPos == Vector3.zero) return;
             await UniTask.DelayFrame(1);
-            Camera.main.transform.position = Vector3.MoveTowards(Camera.main.transform.position, Zoom.gotoPos, Time.deltaTime*5f);
+            Camera.main.transform.position = Vector3.MoveTowards(Camera.main.transform.position, Zoom.gotoPos, Time.deltaTime*7f);
+        }
+    }
+}
+public static class Job
+{
+    private static List<Action> ActionList = new List<Action>();
+    public static void AddJobToQueue(Action act)
+    {
+        ActionList.Add(act);
+    }
+    public static async UniTaskVoid ExecuteAllJobs(int miliseconds)
+    {
+        foreach (Action act in ActionList)
+        {
+            act();
+            await UniTask.Delay(miliseconds);
         }
     }
 }
