@@ -5,7 +5,7 @@ using UnityEngine;
 
 public static class Raycast
 {
-    public static Vector3 ScreenToGroundPos()
+    public static Vector3 ScreenToGroundReturnPos()
     {
         Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
         RaycastHit hit;
@@ -15,7 +15,7 @@ public static class Raycast
         }
         return Vector3.zero;
     }
-    public static string ScreenToGroundName()
+    public static string ScreenToGroundReturnName()
     {
         Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
         RaycastHit hit;
@@ -25,7 +25,7 @@ public static class Raycast
         }
         return null;
     }
-    public static GameObject ScreenToGroundObj()
+    public static GameObject ScreenToGroundReturGameObj()
     {
         Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
         RaycastHit hit;
@@ -35,7 +35,7 @@ public static class Raycast
         }
         return null;
     }
-    public static Transform ScreenToGroundTransform()
+    public static Transform ScreenToGroundReturnTransform()
     {
         Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
         RaycastHit hit;
