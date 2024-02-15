@@ -1,4 +1,7 @@
 using Cysharp.Threading.Tasks;
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 public static class Raycast
@@ -62,7 +65,6 @@ public static class LookAt
 }
 public static class Zoom
 {
-    private static bool zooming = false;
     public static void InOut(Transform tf, float zoomAmount, float minRange, float maxRange)
     {
         float axisVal = Input.GetAxis("Mouse ScrollWheel");
@@ -78,30 +80,61 @@ public static class Zoom
             Camera.main.transform.position = tf.position - gotoDir * newDistance;
         }
     }
-    public static async UniTaskVoid InOutSmooth(Transform tf, float zoomAmount, float minRange, float maxRange, float smoothness)
+    public static void InOutSmooth(Transform tf, float zoomAmount, float minRange, float maxRange, float smoothness)
     {
-        if (zooming) return;
-
         float axisVal = Input.GetAxis("Mouse ScrollWheel");
-        if (axisVal != 0)
+        if (axisVal == 0) return;
+
+        Func<UniTask> taskToRun = () => InOutSmoothAsync(tf, zoomAmount, minRange, maxRange, smoothness, axisVal);
+        Tasks.AddTaskToPool(taskToRun);
+        //Tasks.RunAllTasksOneByOne();
+    }
+    public static async UniTask InOutSmoothAsync(Transform tf, float zoomAmount, float minRange, float maxRange, float smoothness, float axisVal)
+    {
+        Vector3 gotoDir = tf.position - Camera.main.transform.position;
+        float distance = gotoDir.magnitude;
+        gotoDir.Normalize();
+
+        float newDistance = distance + axisVal * zoomAmount * 2f;
+        newDistance = Mathf.Clamp(newDistance, minRange, maxRange);
+
+        Vector3 targetPosition = tf.position - gotoDir * newDistance;
+
+        while (Vector3.Distance(Camera.main.transform.position, targetPosition) > 0.03f)
         {
-            zooming = true;
+            Camera.main.transform.position = Vector3.Lerp(Camera.main.transform.position, targetPosition, smoothness * Time.deltaTime);
+            await UniTask.DelayFrame(1);
+        }
+    }
+}
+public static class Tasks
+{
+    public static List<Func<UniTask>> tasksToRun = new List<Func<UniTask>>();
+    static int maxTaskToRun = 5;
+    static bool runningTasks = false;
+    public static async UniTask RunAllTasksOneByOne()
+    {
+        if (runningTasks || tasksToRun.Count == 0) return;
 
-            Vector3 gotoDir = tf.position - Camera.main.transform.position;
-            float distance = gotoDir.magnitude;
-            gotoDir.Normalize();
+        runningTasks = true;
 
-            float newDistance = distance + axisVal * zoomAmount*2f;
-            newDistance = Mathf.Clamp(newDistance, minRange, maxRange);
+        while (tasksToRun.Count > 0)
+        {
+            Func<UniTask> task = tasksToRun[0];
+            await task.Invoke();
+            tasksToRun.RemoveAt(0);
+        }
 
-            Vector3 targetPosition = tf.position - gotoDir * newDistance;
+        runningTasks = false;
+    }
+    public static void AddTaskToPool(Func<UniTask> task)
+    {
+        if (tasksToRun.Count >= maxTaskToRun) return;
+        tasksToRun.Add(task);
 
-            while (Vector3.Distance(Camera.main.transform.position, targetPosition) > 0.03f)
-            {
-                Camera.main.transform.position = Vector3.Lerp(Camera.main.transform.position, targetPosition, smoothness * Time.deltaTime);
-                await UniTask.DelayFrame(1);
-            }
-            zooming = false;
+        if (!runningTasks)
+        {
+            RunAllTasksOneByOne().Forget();
         }
     }
 }
