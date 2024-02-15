@@ -100,6 +100,14 @@ public static class Job
     {
         ActionList.Add(act);
     }
+    public static void RemoveJobFromQueue(Action act)
+    {
+        ActionList.Remove(act);
+    }
+    public static void ClearAllJobs()
+    {
+        ActionList.Clear();
+    }
     public static async UniTaskVoid ExecuteAllJobs(int miliseconds)
     {
         foreach (Action act in ActionList)
