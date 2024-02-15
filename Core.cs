@@ -1,3 +1,5 @@
+using Cysharp.Threading.Tasks;
+using System.Collections;
 using UnityEngine;
 using static UnityEngine.GraphicsBuffer;
 
@@ -62,7 +64,8 @@ public static class LookAt
 }
 public static class Zoom
 {
-    public static void InOut(Transform tf, float amount, float minRange, float maxRange)
+    private static bool zooming = false;
+    public static void InOut(Transform tf, float zoomAmount, float minRange, float maxRange)
     {
         float axisVal = Input.GetAxis("Mouse ScrollWheel");
         if (axisVal != 0)
@@ -71,11 +74,36 @@ public static class Zoom
             float distance = gotoDir.magnitude;
             gotoDir.Normalize();
 
-            float newDistance = distance + axisVal * amount;
+            float newDistance = distance + axisVal * zoomAmount;
             newDistance = Mathf.Clamp(newDistance, minRange, maxRange);
 
             Camera.main.transform.position = tf.position - gotoDir * newDistance;
         }
     }
+    public static async UniTaskVoid InOutSmooth(Transform tf, float zoomAmount, float minRange, float maxRange, float smoothness)
+    {
+        if (zooming) return;
 
+        float axisVal = Input.GetAxis("Mouse ScrollWheel");
+        if (axisVal != 0)
+        {
+            zooming = true;
+
+            Vector3 gotoDir = tf.position - Camera.main.transform.position;
+            float distance = gotoDir.magnitude;
+            gotoDir.Normalize();
+
+            float newDistance = distance + axisVal * zoomAmount*2f;
+            newDistance = Mathf.Clamp(newDistance, minRange, maxRange);
+
+            Vector3 targetPosition = tf.position - gotoDir * newDistance;
+
+            while (Vector3.Distance(Camera.main.transform.position, targetPosition) > 0.03f)
+            {
+                Camera.main.transform.position = Vector3.Lerp(Camera.main.transform.position, targetPosition, smoothness * Time.deltaTime);
+                await UniTask.DelayFrame(1);
+            }
+            zooming = false;
+        }
+    }
 }
